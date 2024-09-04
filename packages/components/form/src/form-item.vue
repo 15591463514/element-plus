@@ -24,6 +24,7 @@
     </form-label-wrap>
 
     <div :class="ns.e('content')" :style="contentStyle">
+      <!-- 默认传递的插槽 -->
       <slot />
       <transition-group :name="`${ns.namespace.value}-zoom-in-top`">
         <slot v-if="shouldShowError" name="error" :error="validateMessage">
@@ -336,8 +337,13 @@ const clearValidate: FormItemContext['clearValidate'] = () => {
   isResettingField = false
 }
 
+/*
+  重置表单的函数
+*/
 const resetField: FormItemContext['resetField'] = async () => {
+  // 获取表单的数据对象
   const model = formContext?.model
+  // 如果没有提供model或者没有提供prop, 则!!不能被重置(因为下一步操作无法进行)
   if (!model || !props.prop) return
 
   const computedValue = getProp(model, props.prop)
@@ -345,6 +351,7 @@ const resetField: FormItemContext['resetField'] = async () => {
   // prevent validation from being triggered
   isResettingField = true
 
+  // 读取初始值, 将保存的初始值赋值给
   computedValue.value = clone(initialValue)
 
   await nextTick()
@@ -398,6 +405,12 @@ provide(formItemContextKey, context)
 
 onMounted(() => {
   if (props.prop) {
+    /*
+      如果有prop属性(form用来表述表单item的校验的key)
+      
+      1. 将当前表单的上下文数据全部追加到form的field数组中, 又form进行遍历fields进行校验
+      2. 存储一份初始值, 用来重置表单
+    */
     formContext?.addField(context)
     initialValue = clone(fieldValue.value)
   }

@@ -268,6 +268,7 @@ const { wrapperRef, isFocused, handleFocus, handleBlur } = useFocusController(
     },
     afterBlur() {
       if (props.validateEvent) {
+        // 让formItem的校验方法在blur时执行
         elFormItem?.validate?.('blur').catch((err) => debugWarn(err))
       }
     },

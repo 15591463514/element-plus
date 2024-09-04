@@ -30,6 +30,10 @@ defineOptions({
 const props = defineProps(formProps)
 const emit = defineEmits(formEmits)
 
+/*
+  表单字段值
+    由form来统计, 抛出addField等方法, 来给父级的form添加表单字段
+*/
 const fields: FormItemContext[] = []
 
 const formSize = useFormSize()
@@ -93,23 +97,37 @@ const obtainValidateFields = (props: Arrayable<FormItemProp>) => {
   return filteredFields
 }
 
+/*
+  ele的的form上的校验函数, 这个函数会校验所有有prop的表单项
+  validateField第一个参数为空, 是校验所有表单属性
+  直接返回了校验函数的执行结果
+ */
 const validate = async (
   callback?: FormValidateCallback
 ): FormValidationResult => validateField(undefined, callback)
 
+/*
+  异步验证表单字段
+*/
 const doValidateField = async (
   props: Arrayable<FormItemProp> = []
 ): Promise<boolean> => {
+  // 字段不可验证
   if (!isValidatable.value) return false
 
+  // 获取需要验证的字段
   const fields = obtainValidateFields(props)
+  // 校验通过
   if (fields.length === 0) return true
 
+  // 用于存储验证错误的变量
   let validationErrors: ValidateFieldsError = {}
+  // 遍历fields数组, 对每个字段进行验证
   for (const field of fields) {
     try {
       await field.validate('')
     } catch (fields) {
+      // 如果验证失败，则将错误信息存储到 validationErrors 对象中。
       validationErrors = {
         ...validationErrors,
         ...(fields as ValidateFieldsError),
@@ -117,18 +135,30 @@ const doValidateField = async (
     }
   }
 
+  // 如果存储错误的对象为空, 则说明验证成功, 返回true
   if (Object.keys(validationErrors).length === 0) return true
+  // 否则, 验证失败, 返回验证错误信息
   return Promise.reject(validationErrors)
 }
 
+/*
+  校验表单的函数, 这个函数会校验所有有prop的表单项
+  如果校验失败, 会返回一个Promise.reject, 里面包含了校验失败的信息
+  如果校验成功, 会返回一个Promise.resolve
+*/
 const validateField: FormContext['validateField'] = async (
   modelProps = [],
   callback
 ) => {
+  /**
+    函数检查callback是否是一个函数。如果不是，则将shouldThrow设置为true，表示在验证失败时应该抛出错误。
+   */
   const shouldThrow = !isFunction(callback)
   try {
+    // 校验所有的表单字段(modelProps是空数组)
     const result = await doValidateField(modelProps)
     // When result is false meaning that the fields are not validatable
+    // 翻译: 当结果为假时，表示字段不可验证
     if (result === true) {
       await callback?.(result)
     }
@@ -136,12 +166,15 @@ const validateField: FormContext['validateField'] = async (
   } catch (e) {
     if (e instanceof Error) throw e
 
+    // 变量: 接受校验结果的错误对象
     const invalidFields = e as ValidateFieldsError
 
     if (props.scrollToError) {
       scrollToField(Object.keys(invalidFields)[0])
     }
+
     await callback?.(false, invalidFields)
+    // 直接把错误对象返回
     return shouldThrow && Promise.reject(invalidFields)
   }
 }
